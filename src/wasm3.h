@@ -55,9 +55,7 @@ enum // EWaTypes
 
     c_m3Type_void,
     c_m3Type_ptr,
-    c_m3Type_trap,
-
-    c_m3Type_runtime
+    c_m3Type_trap
 };
 
 
@@ -164,7 +162,7 @@ d_m3ErrorConst  (trapStackOverflow,             "[trap] stack overflow")
                                                      void *                 unused);
 
     void                m3_FreeRuntime              (IM3Runtime             i_runtime);
-    
+
     uint8_t *           m3_GetMemory                (IM3Runtime             i_runtime,
                                                      uint32_t *             o_memorySizeInBytes,
                                                      uint32_t               i_memoryIndex);

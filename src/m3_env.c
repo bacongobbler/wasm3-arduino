@@ -638,9 +638,14 @@ M3Result  InitStartFunc  (IM3Module io_module)
 _           (Compile_Function (function));
         }
 
-_       (m3_Call(function));
+        IM3FuncType ftype = function->funcType;
+        if (ftype->numArgs != 0 || ftype->returnType != c_m3Type_none)
+            _throw (m3Err_argumentCountMismatch);
 
-		io_module->startFunction = -1;
+        IM3Module module = function->module;
+        IM3Runtime runtime = module->runtime;
+
+_       ((M3Result) Call (function->compiled, (m3stack_t) runtime->stack, runtime->memory.mallocated, d_m3OpDefaultArgs));
     }
 
     _catch: return result;
@@ -664,7 +669,8 @@ _       (InitElements (io_module));
         io_module->next = io_runtime->modules;
         io_runtime->modules = io_module;
 
-        // Start func will be called when first function call is attempted
+        // Functions expect module to be linked to a runtime, so we call start here
+_       (InitStartFunc (io_module));
     }
     else result = m3Err_moduleAlreadyLinked;
 
@@ -712,13 +718,6 @@ M3Result  m3_FindFunction  (IM3Function * o_function, IM3Runtime i_runtime, cons
         }
     }
     else result = ErrorModule (m3Err_functionLookupFailed, i_runtime->modules, "'%s'", i_functionName);
-
-    // Check if start function needs to be called
-    if (function and function->module->startFunction) {
-        result = InitStartFunc (function->module);
-        if (result)
-            return result;
-    }
 
     * o_function = function;
 
@@ -789,13 +788,9 @@ _       ((M3Result) Call (i_function->compiled, (m3stack_t) stack, runtime->memo
         case c_m3Type_f32:  fprintf (stderr, "Result: %f\n",   *(f32*)(stack));  break;
         case c_m3Type_f64:  fprintf (stderr, "Result: %lf\n",  *(f64*)(stack));  break;
 #else
-        case c_m3Type_i32:  fprintf (stderr, "Result: %u\n",  *(u32*)(stack));  break;
-        case c_m3Type_f32:  {
-            union { u32 u; f32 f; } union32;
-            union32.f = * (f32 *)(stack);
-            fprintf (stderr, "Result: %u\n", union32.u );
-            break;
-        }
+        case c_m3Type_i32:
+        case c_m3Type_f32:
+            fprintf (stderr, "Result: %u\n",  *(u32*)(stack));  break;
         case c_m3Type_i64:
         case c_m3Type_f64:
             fprintf (stderr, "Result: %" PRIu64 "\n", *(u64*)(stack));  break;
